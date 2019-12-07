@@ -13,12 +13,13 @@ public:
 
 class conway {
 private:
+	bool populated; // have we populated this?
 	int rows;
 	int cols;
-	cell** matrix;
 	size_t count_n(int r, int c);
 public:
-	conway(int r, int c);
+	cell** matrix;
+	conway(int r, int c) : rows{r}, cols{c}, matrix{NULL}, populated{false} {}
 	~conway();
 	void populate(std::vector<cell> points);
 	void step();

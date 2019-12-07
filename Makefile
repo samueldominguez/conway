@@ -1,10 +1,10 @@
-CC=g++ -std=c++17
+CC=g++ -std=c++17 -g
 PKGS=sdl2
 PKG_C_FLAGS=pkg-config --cflags $(PKGS)
 PKG_L_FLAGS=pkg-config --libs $(PKGS)
 CFLAGS=`$(PKG_C_FLAGS)` -c
 LDFLAGS=`$(PKG_L_FLAGS)` -lSDL2_image
-SOURCES=main.cpp conway.cpp
+SOURCES=main.cpp conway.cpp game.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=game
 

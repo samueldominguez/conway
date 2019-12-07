@@ -24,7 +24,7 @@ bool game::initialize()
 	// set render draw color
 	SDL_SetRenderDrawColor(rend, 0xFF, 0xFF, 0xFF, 0xFF);
 
-	// SDL_IMage
+	// SDL_Image
 	int img_flags = IMG_INIT_PNG;
 	if (!(IMG_Init(img_flags) & img_flags)) {
 		std::cout << "SDL_Image could not be initialized: " << SDL_GetError() << std::endl;
@@ -35,18 +35,33 @@ bool game::initialize()
 	return true;
 }
 
-game::game(int width, int height)
+game::game(int width, int height, int x_grid, int y_grid)
 {
 	s_width = width;
 	s_height = height;
 	win = NULL;
 	rend = NULL;
+	// cell update threshold to 1s by default, in ms
+	cell_update_t = 500;
+	// viewports: 7/8ths of height for the conway rendering
+	//            1/8ths of height for the gui
+	// cell: 10px by default although can scale
+	conway_vp = {0, 0, s_width, (int)std::lround(s_height * (7/8.0))};
+	gui_vp = {0, (int)std::lround(s_height * (7/8.0)), s_width, (int)std::lround(s_height * (1/8.0))};
+	// cell scale
+	cell_scale = 1.0;
+	// cell bounds
+	x_cells = x_grid > x_con_cells() ? x_grid : x_con_cells();
+	y_cells = y_grid > y_con_cells() ? y_grid : y_con_cells();
+	// initialize conway
+	cw = new conway(x_cells, y_cells);
 }
 
 game::~game()
 {
 	if (rend) SDL_DestroyRenderer(rend);
 	if (win) SDL_DestroyWindow(win);
+	if (cw) delete cw;
 
 	IMG_Quit();
 	SDL_Quit();
@@ -56,8 +71,44 @@ void game::game_loop()
 {
 	bool quit = false;
 	SDL_Event ev; // event handler
-	Uint32 start;
+	Uint32 start, cell_update;
 
+	// cell
+	SDL_Rect d_cell;
+
+	// center point
+	SDL_Rect c_point;
+	c_point.x = (x_cells / 2.0) - (x_con_cells() / 2.0);
+	c_point.y = (y_cells / 2.0) - (y_con_cells() / 2.0);
+
+	// debug
+	SDL_Rect gui = {0, 0, gui_vp.w, gui_vp.h};
+	std::vector<cell> p;
+	p.push_back(cell(150, 150));
+	p.push_back(cell(152, 150));
+	p.push_back(cell(152, 149));
+	p.push_back(cell(154, 148));
+	p.push_back(cell(154, 147));
+	p.push_back(cell(154, 146));
+	p.push_back(cell(156, 147));
+	p.push_back(cell(156, 146));
+	p.push_back(cell(157, 146));
+	p.push_back(cell(156, 145));
+	p.push_back(cell(150, 158));
+	p.push_back(cell(151, 158));
+	p.push_back(cell(152, 158));
+	p.push_back(cell(152, 157));
+	p.push_back(cell(151, 156));
+
+	// p.push_back(cell(1, 2));
+	// p.push_back(cell(2, 2));
+	// p.push_back(cell(3, 2));
+	
+	// populate the conway matrix
+	cw->populate(p);
+
+	// start logic timers
+	cell_update = SDL_GetTicks();
 	while (!quit) {
 		start = SDL_GetTicks();
 
@@ -67,16 +118,63 @@ void game::game_loop()
 			case SDL_QUIT:
 				quit = true;
 				break;
+			case SDL_KEYDOWN:
+				switch (ev.key.keysym.sym) {
+				case SDLK_UP:
+					if (c_point.y  > 0)
+						c_point.y--;
+					break;
+				case SDLK_DOWN:
+					if (c_point.y + y_con_cells() < y_cells)
+						c_point.y++;
+					break;
+				case SDLK_RIGHT:
+					if (c_point.x + x_con_cells() < x_cells)
+						c_point.x++;
+					break;
+				case SDLK_LEFT:
+					if (c_point.x > 0)
+						c_point.x--;
+					break;
+				}
 			}
 		}
+		// logic
+		// cell updates every 1s
+		if (SDL_GetTicks() - cell_update >= cell_update_t) {
+			// step conway's game of life
+			cw->step();
+			// reset the cell_update timer
+			cell_update = SDL_GetTicks();
+		}
+
+		// adjust scale of the cell
+		d_cell.w = d_cell.h = def_cell_size * cell_scale;
+		
 		// clear screen
-		SDL_SetRenderDrawColor(rend, 0xFF, 0xFF, 0xFF, 0xFF);
+		SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, 0x00);
 		SDL_RenderClear(rend);
-
-		// draw line
+		
+		// draw conway
+		SDL_RenderSetViewport(rend, &conway_vp);
 		SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0xFF, 0xFF);
-		SDL_RenderDrawLine(rend, 0, 0, s_width, s_height);
 
+		for (int y = c_point.y; y < c_point.y + y_con_cells(); ++y) {
+			for (int x = c_point.x; x < c_point.x + x_con_cells(); ++x) {
+				// only draw alive ones, we've cleared the screen already with white
+				if (cw->matrix[y][x].alive) {
+					SDL_SetRenderDrawColor(rend, 0xFF, 0xFF, 0x00, 0xFF);
+					d_cell.x = (x - c_point.x) * d_cell.w;
+					d_cell.y = (y - c_point.y) * d_cell.h;
+					SDL_RenderFillRect(rend, &d_cell);
+				}
+			}
+		}
+
+		// draw gui
+		SDL_RenderSetViewport(rend, &gui_vp);
+		SDL_SetRenderDrawColor(rend, 0xFF, 0x00, 0x00, 0xFF);
+		SDL_RenderDrawRect(rend, &gui);
 		// update screen
 		SDL_RenderPresent(rend);
 

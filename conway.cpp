@@ -1,12 +1,5 @@
 #include "conway.hpp"
 
-conway::conway(int r, int c)
-{
-	rows = r;
-	cols = c;
-	matrix = NULL;
-}
-
 void conway::populate(std::vector<cell> points)
 {
 	// allocate
@@ -18,10 +11,12 @@ void conway::populate(std::vector<cell> points)
 	for (auto& p : points) {
 		matrix[p.y][p.x].alive = true;
 	}
+	populated = true;
 }
 
 conway::~conway()
 {
+	if (!populated) return;
 	for (int r = 0; r < rows; ++r) {
 		delete[] matrix[r];
 	}
