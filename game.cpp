@@ -49,12 +49,14 @@ game::game(int width, int height, int x_grid, int y_grid)
 	conway_vp = {0, 0, s_width, (int)std::lround(s_height * (7/8.0))};
 	gui_vp = {0, (int)std::lround(s_height * (7/8.0)), s_width, (int)std::lround(s_height * (1/8.0))};
 	// cell scale
-	cell_scale = 1.0;
+	cell_scale = 1;
 	// cell bounds
-	x_cells = x_grid > x_con_cells() ? x_grid : x_con_cells();
-	y_cells = y_grid > y_con_cells() ? y_grid : y_con_cells();
+	// x_cells = x_grid > x_con_cells() ? x_grid : x_con_cells();
+	// y_cells = y_grid > y_con_cells() ? y_grid : y_con_cells();
+	x_cells = x_grid;
+	y_cells = y_grid;
 	// initialize conway
-	cw = new conway(x_cells, y_cells);
+	cw = new conway(y_cells, x_cells);
 }
 
 game::~game()
@@ -78,38 +80,40 @@ void game::game_loop()
 
 	// center point
 	SDL_Rect c_point;
-	c_point.x = (x_cells / 2.0) - (x_con_cells() / 2.0);
-	c_point.y = (y_cells / 2.0) - (y_con_cells() / 2.0);
+	if (x_con_cells() >= x_cells) c_point.x = 0;
+	else c_point.x = (x_cells / 2.0) - (x_con_cells() / 2.0);
+	if (y_con_cells() >= y_cells) c_point.y = 0;
+	else c_point.y = (y_cells / 2.0) - (y_con_cells() / 2.0);
 
 	// debug
 	SDL_Rect gui = {0, 0, gui_vp.w, gui_vp.h};
 	std::vector<cell> p;
-	p.push_back(cell(150, 150));
-	p.push_back(cell(152, 150));
-	p.push_back(cell(152, 149));
-	p.push_back(cell(154, 148));
-	p.push_back(cell(154, 147));
-	p.push_back(cell(154, 146));
-	p.push_back(cell(156, 147));
-	p.push_back(cell(156, 146));
-	p.push_back(cell(157, 146));
-	p.push_back(cell(156, 145));
-	p.push_back(cell(150, 158));
-	p.push_back(cell(151, 158));
-	p.push_back(cell(152, 158));
-	p.push_back(cell(152, 157));
-	p.push_back(cell(151, 156));
+	// p.push_back(cell(150, 150));
+	// p.push_back(cell(152, 150));
+	// p.push_back(cell(152, 149));
+	// p.push_back(cell(154, 148));
+	// p.push_back(cell(154, 147));
+	// p.push_back(cell(154, 146));
+	// p.push_back(cell(156, 147));
+	// p.push_back(cell(156, 146));
+	// p.push_back(cell(157, 146));
+	// p.push_back(cell(156, 145));
+	// p.push_back(cell(150, 158));
+	// p.push_back(cell(151, 158));
+	// p.push_back(cell(152, 158));
+	// p.push_back(cell(152, 157));
+	// p.push_back(cell(151, 156));
 
-	// p.push_back(cell(1, 2));
-	// p.push_back(cell(2, 2));
-	// p.push_back(cell(3, 2));
+	p.push_back(cell(1, 2));
+	p.push_back(cell(2, 2));
+	p.push_back(cell(3, 2));
 	
 	// populate the conway matrix
 	cw->populate(p);
 
 	// get access to the keyboard state
 	const Uint8* key_state = SDL_GetKeyboardState(NULL);
-	
+	std::cout << y_cells << " " << x_cells << std::endl;
 	// start logic timers
 	cell_update = SDL_GetTicks();
 	while (!quit) {
@@ -161,8 +165,8 @@ void game::game_loop()
 		SDL_RenderSetViewport(rend, &conway_vp);
 		SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0xFF, 0xFF);
 
-		for (int y = c_point.y; y < c_point.y + y_con_cells(); ++y) {
-			for (int x = c_point.x; x < c_point.x + x_con_cells(); ++x) {
+		for (int y = c_point.y; y < c_point.y + y_con_cells() and y < y_cells; ++y) {
+			for (int x = c_point.x; x < c_point.x + x_con_cells() and x < x_cells; ++x) {
 				// only draw alive ones, we've cleared the screen already with white
 				if (cw->matrix[y][x].alive) {
 					SDL_SetRenderDrawColor(rend, 0xFF, 0xFF, 0x00, 0xFF);
