@@ -107,6 +107,9 @@ void game::game_loop()
 	// populate the conway matrix
 	cw->populate(p);
 
+	// get access to the keyboard state
+	const Uint8* key_state = SDL_GetKeyboardState(NULL);
+	
 	// start logic timers
 	cell_update = SDL_GetTicks();
 	while (!quit) {
@@ -119,23 +122,22 @@ void game::game_loop()
 				quit = true;
 				break;
 			case SDL_KEYDOWN:
-				switch (ev.key.keysym.sym) {
-				case SDLK_UP:
+			case SDL_KEYUP:
+				if (key_state[SDL_SCANCODE_UP]) {
 					if (c_point.y  > 0)
 						c_point.y--;
-					break;
-				case SDLK_DOWN:
+				}
+				if (key_state[SDL_SCANCODE_DOWN]) {
 					if (c_point.y + y_con_cells() < y_cells)
 						c_point.y++;
-					break;
-				case SDLK_RIGHT:
+				}
+				if (key_state[SDL_SCANCODE_RIGHT]) {
 					if (c_point.x + x_con_cells() < x_cells)
 						c_point.x++;
-					break;
-				case SDLK_LEFT:
+				}
+				if (key_state[SDL_SCANCODE_LEFT]) {
 					if (c_point.x > 0)
 						c_point.x--;
-					break;
 				}
 			}
 		}
