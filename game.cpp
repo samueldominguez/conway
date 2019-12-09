@@ -42,7 +42,7 @@ game::game(int width, int height, int x_grid, int y_grid)
 	win = NULL;
 	rend = NULL;
 	// cell update threshold to 1s by default, in ms
-	cell_update_t = 500;
+	cell_update_t = 100;
 	// viewports: 7/8ths of height for the conway rendering
 	//            1/8ths of height for the gui
 	// cell: 10px by default although can scale
@@ -51,8 +51,6 @@ game::game(int width, int height, int x_grid, int y_grid)
 	// cell scale
 	cell_scale = 1;
 	// cell bounds
-	// x_cells = x_grid > x_con_cells() ? x_grid : x_con_cells();
-	// y_cells = y_grid > y_con_cells() ? y_grid : y_con_cells();
 	x_cells = x_grid;
 	y_cells = y_grid;
 	// initialize conway
@@ -72,6 +70,7 @@ game::~game()
 void game::game_loop()
 {
 	bool quit = false;
+	bool insert_cells = false; // insert cells at mouse point?
 	SDL_Event ev; // event handler
 	Uint32 start, cell_update;
 
@@ -85,35 +84,34 @@ void game::game_loop()
 	if (y_con_cells() >= y_cells) c_point.y = 0;
 	else c_point.y = (y_cells / 2.0) - (y_con_cells() / 2.0);
 
-	// debug
 	SDL_Rect gui = {0, 0, gui_vp.w, gui_vp.h};
+	// debug
 	std::vector<cell> p;
-	// p.push_back(cell(150, 150));
-	// p.push_back(cell(152, 150));
-	// p.push_back(cell(152, 149));
-	// p.push_back(cell(154, 148));
-	// p.push_back(cell(154, 147));
-	// p.push_back(cell(154, 146));
-	// p.push_back(cell(156, 147));
-	// p.push_back(cell(156, 146));
-	// p.push_back(cell(157, 146));
-	// p.push_back(cell(156, 145));
-	// p.push_back(cell(150, 158));
-	// p.push_back(cell(151, 158));
-	// p.push_back(cell(152, 158));
-	// p.push_back(cell(152, 157));
-	// p.push_back(cell(151, 156));
+	p.push_back(cell(150, 150));
+	p.push_back(cell(152, 150));
+	p.push_back(cell(152, 149));
+	p.push_back(cell(154, 148));
+	p.push_back(cell(154, 147));
+	p.push_back(cell(154, 146));
+	p.push_back(cell(156, 147));
+	p.push_back(cell(156, 146));
+	p.push_back(cell(157, 146));
+	p.push_back(cell(156, 145));
+	p.push_back(cell(150, 158));
+	p.push_back(cell(151, 158));
+	p.push_back(cell(152, 158));
+	p.push_back(cell(152, 157));
+	p.push_back(cell(151, 156));
 
-	p.push_back(cell(1, 2));
-	p.push_back(cell(2, 2));
-	p.push_back(cell(3, 2));
+	// p.push_back(cell(1, 2));
+	// p.push_back(cell(2, 2));
+	// p.push_back(cell(3, 2));
 	
 	// populate the conway matrix
 	cw->populate(p);
 
 	// get access to the keyboard state
 	const Uint8* key_state = SDL_GetKeyboardState(NULL);
-	std::cout << y_cells << " " << x_cells << std::endl;
 	// start logic timers
 	cell_update = SDL_GetTicks();
 	while (!quit) {
@@ -127,6 +125,7 @@ void game::game_loop()
 				break;
 			case SDL_KEYDOWN:
 			case SDL_KEYUP:
+				// scrolling around the map
 				if (key_state[SDL_SCANCODE_UP]) {
 					if (c_point.y  > 0)
 						c_point.y--;
@@ -143,9 +142,28 @@ void game::game_loop()
 					if (c_point.x > 0)
 						c_point.x--;
 				}
+				break;
+			case SDL_MOUSEBUTTONDOWN:
+				// placing new cells with mouse
+				if (ev.button.button == SDL_BUTTON_LEFT and
+				    within_rect(conway_vp, ev.motion.x, ev.motion.y))
+					insert_cells = true;
+				break;
+			case SDL_MOUSEBUTTONUP:
+				// no longer placing new cells with mouse
+				if (ev.button.button == SDL_BUTTON_LEFT) insert_cells = false;
+				break;
 			}
 		}
 		// logic
+		if (insert_cells) {
+			// get current mouse coordinates
+			int x, y;
+			SDL_GetMouseState(&x, &y);
+			// map coordinates to location in conway matrix
+			cw->matrix[c_point.y + (int)(y / (def_cell_size * cell_scale))][c_point.x + (int)(x / (def_cell_size * cell_scale))].alive = true;
+		}
+		
 		// cell updates every 1s
 		if (SDL_GetTicks() - cell_update >= cell_update_t) {
 			// step conway's game of life
@@ -179,8 +197,8 @@ void game::game_loop()
 
 		// draw gui
 		SDL_RenderSetViewport(rend, &gui_vp);
-		SDL_SetRenderDrawColor(rend, 0xFF, 0x00, 0x00, 0xFF);
-		SDL_RenderDrawRect(rend, &gui);
+		SDL_SetRenderDrawColor(rend, 0xA9, 0xA9, 0xA9, 0xFF);
+		SDL_RenderFillRect(rend, &gui);
 		// update screen
 		SDL_RenderPresent(rend);
 
@@ -188,4 +206,11 @@ void game::game_loop()
 		if (SDL_GetTicks() - start < fpsms)
 			SDL_Delay(fpsms - (SDL_GetTicks() - start));
 	}
+}
+
+bool game::within_rect(SDL_Rect& r, int x, int y)
+{
+	if (x >= r.x and x <= r.x + r.w and
+	    y >= r.y and y <= r.y + r.h) return true;
+	else return false;
 }

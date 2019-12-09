@@ -37,6 +37,7 @@ private:
 	// across each dimension at a given time
 	int y_con_cells() { return conway_vp.h / (def_cell_size * cell_scale); }
 	int x_con_cells() { return conway_vp.w / (def_cell_size * cell_scale); }
+	bool within_rect(SDL_Rect& r, int x, int y);
 public:
 	game(int width, int height, int x_grid, int y_grid);
 	~game();

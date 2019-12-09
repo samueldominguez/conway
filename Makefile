@@ -1,4 +1,4 @@
-CC=g++ -std=c++17 -g
+CC=g++ -std=c++17 -O3
 PKGS=sdl2
 PKG_C_FLAGS=pkg-config --cflags $(PKGS)
 PKG_L_FLAGS=pkg-config --libs $(PKGS)
@@ -19,5 +19,6 @@ $(EXECUTABLE): $(OBJECTS)
 	@echo "C++	$<"
 
 clean:
-	rm -f $(OBJECTS)
-	rm -f $(EXECUTABLE)
+	@rm -f $(OBJECTS) $(EXECUTABLE)
+	@echo "RM	$(OBJECTS)"
+	@echo "RM	$(EXECUTABLE)"
