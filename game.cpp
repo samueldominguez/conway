@@ -74,6 +74,12 @@ void game::game_loop()
 	SDL_Event ev; // event handler
 	Uint32 start, cell_update;
 
+	// random device and generator
+	std::random_device rd;
+	std::mt19937 eng(rd());
+	std::uniform_int_distribution<> distr(0x00, 0xFF); // inclusive
+	
+
 	// cell
 	SDL_Rect d_cell;
 
@@ -116,7 +122,7 @@ void game::game_loop()
 	cell_update = SDL_GetTicks();
 	while (!quit) {
 		start = SDL_GetTicks();
-
+	
 		// handle queued events
 		while (SDL_PollEvent(&ev) != 0) {
 			switch (ev.type) {
@@ -148,6 +154,27 @@ void game::game_loop()
 				if (ev.button.button == SDL_BUTTON_LEFT and
 				    within_rect(conway_vp, ev.motion.x, ev.motion.y))
 					insert_cells = true;
+				else if (ev.button.button == SDL_BUTTON_LEFT and
+					 within_rect(gui_vp, ev.motion.x, ev.motion.y)) {
+					// reshape
+					int prev_ycells = y_con_cells();
+					int prev_xcells = x_con_cells();
+					cell_scale += 0.5;
+					c_point.x += (prev_xcells - x_con_cells()) / 2;
+					c_point.y += (prev_ycells - y_con_cells()) / 2;
+
+				}
+				else if (ev.button.button == SDL_BUTTON_RIGHT and
+					 within_rect(gui_vp, ev.motion.x, ev.motion.y))
+					if ((cell_scale - 0.5) <= 0) cell_scale = 0.5;
+					else {
+						// reshape
+						int prev_ycells = y_con_cells();
+						int prev_xcells = x_con_cells();
+						cell_scale -= 0.5;
+						c_point.x += (prev_xcells - x_con_cells()) / 2;
+						c_point.y += (prev_ycells - y_con_cells()) / 2;
+					}
 				break;
 			case SDL_MOUSEBUTTONUP:
 				// no longer placing new cells with mouse
@@ -181,13 +208,14 @@ void game::game_loop()
 		
 		// draw conway
 		SDL_RenderSetViewport(rend, &conway_vp);
-		SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0xFF, 0xFF);
+		// SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0xFF, 0xFF);
 
 		for (int y = c_point.y; y < c_point.y + y_con_cells() and y < y_cells; ++y) {
 			for (int x = c_point.x; x < c_point.x + x_con_cells() and x < x_cells; ++x) {
 				// only draw alive ones, we've cleared the screen already with white
 				if (cw->matrix[y][x].alive) {
-					SDL_SetRenderDrawColor(rend, 0xFF, 0xFF, 0x00, 0xFF);
+					SDL_SetRenderDrawColor(rend, distr(eng), distr(eng), distr(eng), 0xFF);
+					// SDL_SetRenderDrawColor(rend, 0xFF, 0xFF, 0x00, 0xFF);
 					d_cell.x = (x - c_point.x) * d_cell.w;
 					d_cell.y = (y - c_point.y) * d_cell.h;
 					SDL_RenderFillRect(rend, &d_cell);
