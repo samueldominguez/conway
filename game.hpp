@@ -3,8 +3,10 @@
 #include <vector>
 #include <cmath>
 #include <random>
+#include <memory>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 
 #include "conway.hpp"
 
@@ -34,11 +36,14 @@ private:
 	SDL_Rect gui_vp;
 	// cell scale
 	float cell_scale;
+	// font
+	TTF_Font *gfont;
 	// get how many cells we can show on screen
 	// across each dimension at a given time
 	int y_con_cells() { return conway_vp.h / (def_cell_size * cell_scale); }
 	int x_con_cells() { return conway_vp.w / (def_cell_size * cell_scale); }
 	bool within_rect(SDL_Rect& r, int x, int y);
+	SDL_Texture* load_text(std::string text, SDL_Color color);
 public:
 	game(int width, int height, int x_grid, int y_grid);
 	~game();

@@ -30,6 +30,16 @@ bool game::initialize()
 		std::cout << "SDL_Image could not be initialized: " << SDL_GetError() << std::endl;
 		return false;
 	}
+	// SDL_TTF
+	if (TTF_Init() == -1) {
+		std::cout << "error: SDL_TTF could not initialize: " << TTF_GetError() << std::endl;
+		return false;
+	}
+	gfont = TTF_OpenFont("data/font.ttf", 28);
+	if (gfont == NULL) {
+		std::cout << "error: failed to load font: " << TTF_GetError() << std::endl;
+		return false;
+	}
 
 	// success
 	return true;
@@ -42,7 +52,7 @@ game::game(int width, int height, int x_grid, int y_grid)
 	win = NULL;
 	rend = NULL;
 	// cell update threshold to 1s by default, in ms
-	cell_update_t = 100;
+	cell_update_t = 50;
 	// viewports: 7/8ths of height for the conway rendering
 	//            1/8ths of height for the gui
 	// cell: 10px by default although can scale
@@ -63,7 +73,10 @@ game::~game()
 	if (win) SDL_DestroyWindow(win);
 	if (cw) delete cw;
 
+	if (gfont) TTF_CloseFont(gfont);
+	
 	IMG_Quit();
+	TTF_Quit();
 	SDL_Quit();
 }
 
@@ -78,8 +91,16 @@ void game::game_loop()
 	std::random_device rd;
 	std::mt19937 eng(rd());
 	std::uniform_int_distribution<> distr(0x00, 0xFF); // inclusive
-	
 
+	// unique ptrs for text surfaces
+	SDL_Color color = {0x00, 0x00, 0x00};
+	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> pzoom_text(load_text("+ Zoom", color), SDL_DestroyTexture);
+	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> mzoom_text(load_text("- Zoom", color), SDL_DestroyTexture);
+	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> pspeed_text(load_text("+ Speed", color), SDL_DestroyTexture);
+	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> mspeed_text(load_text("- Speed", color), SDL_DestroyTexture);
+	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> rand_text(load_text("Random Color", color), SDL_DestroyTexture);
+	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> norm_text(load_text("Normal Color", color), SDL_DestroyTexture);
+	
 	// cell
 	SDL_Rect d_cell;
 
@@ -191,7 +212,7 @@ void game::game_loop()
 			cw->matrix[c_point.y + (int)(y / (def_cell_size * cell_scale))][c_point.x + (int)(x / (def_cell_size * cell_scale))].alive = true;
 		}
 		
-		// cell updates every 1s
+		// cell updates every cell_update_t in ms
 		if (SDL_GetTicks() - cell_update >= cell_update_t) {
 			// step conway's game of life
 			cw->step();
@@ -214,7 +235,7 @@ void game::game_loop()
 			for (int x = c_point.x; x < c_point.x + x_con_cells() and x < x_cells; ++x) {
 				// only draw alive ones, we've cleared the screen already with white
 				if (cw->matrix[y][x].alive) {
-					SDL_SetRenderDrawColor(rend, distr(eng), distr(eng), distr(eng), 0xFF);
+					SDL_SetRenderDrawColor(rend, 0xFF, distr(eng), distr(eng), 0xFF);
 					// SDL_SetRenderDrawColor(rend, 0xFF, 0xFF, 0x00, 0xFF);
 					d_cell.x = (x - c_point.x) * d_cell.w;
 					d_cell.y = (y - c_point.y) * d_cell.h;
@@ -227,6 +248,7 @@ void game::game_loop()
 		SDL_RenderSetViewport(rend, &gui_vp);
 		SDL_SetRenderDrawColor(rend, 0xA9, 0xA9, 0xA9, 0xFF);
 		SDL_RenderFillRect(rend, &gui);
+
 		// update screen
 		SDL_RenderPresent(rend);
 
@@ -241,4 +263,24 @@ bool game::within_rect(SDL_Rect& r, int x, int y)
 	if (x >= r.x and x <= r.x + r.w and
 	    y >= r.y and y <= r.y + r.h) return true;
 	else return false;
+}
+
+// create texture from text and colour
+SDL_Texture* game::load_text(std::string text, SDL_Color color)
+{
+	SDL_Surface* text_surface = TTF_RenderText_Solid(gfont, text.c_str(), color);
+	SDL_Texture* text_texture = nullptr;
+	if (text_surface == NULL) {
+		std::cout << "error: cannot render text surface: " << TTF_GetError() << std::endl;
+		return nullptr;
+	} else {
+		text_texture = SDL_CreateTextureFromSurface(rend, text_surface);
+		if (text_texture == nullptr) {
+			std::cout << "error: cannot create texture from surface: " << TTF_GetError() << std::endl;
+			return nullptr;
+		} else {
+			SDL_FreeSurface(text_surface);
+			return text_texture;
+		}
+	}
 }
