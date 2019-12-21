@@ -50,3 +50,44 @@ public:
 	bool initialize(); // initialize SDL and other subsystems
 	void game_loop();
 };
+
+class button {
+public:
+	static constexpr int anim_offset = 5;
+	SDL_Rect dest;
+	SDL_Texture* texture;
+	SDL_Color color;
+	Uint32 timer;
+	button(SDL_Texture* t, int x = 0, int y = 0, SDL_Color bcol = {0, 0, 0}) : texture{t}, color{bcol} {
+		// set width and height of texture
+		int w, h;
+		dest.x = x;
+		dest.y = y;
+		SDL_QueryTexture(t, NULL, NULL, &w, &h);
+		dest.w = w;
+		dest.h = h;
+	}
+	void time() { timer = SDL_GetTicks(); }
+	Uint32 elapsed() { return SDL_GetTicks() - timer; }
+	// center and map button
+	void center_y(const SDL_Rect& vp) {
+		dest.y = (vp.h / 2) - (dest.h / 2);
+	}
+	void map_x(const SDL_Rect& vp, int cell, int div) {
+		int c_size = vp.w / div;
+		dest.x = (cell * c_size) - (c_size / 2) - (dest.w / 2);
+	}
+	// animation methods
+	void press_anim() {
+		dest.y += anim_offset;
+	}
+	void depress_anim() {
+		dest.y -= anim_offset;
+	}
+	// draw method
+	void draw(SDL_Renderer* rend) {
+		SDL_SetRenderDrawColor(rend, color.r, color.g, color.b, 0xFF);
+		SDL_RenderDrawRect(rend, &dest);
+		SDL_RenderCopy(rend, texture, nullptr, &dest);
+	}
+};

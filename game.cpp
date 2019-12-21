@@ -35,7 +35,7 @@ bool game::initialize()
 		std::cout << "error: SDL_TTF could not initialize: " << TTF_GetError() << std::endl;
 		return false;
 	}
-	gfont = TTF_OpenFont("data/font.ttf", 28);
+	gfont = TTF_OpenFont("data/font.ttf", 20);
 	if (gfont == NULL) {
 		std::cout << "error: failed to load font: " << TTF_GetError() << std::endl;
 		return false;
@@ -98,8 +98,28 @@ void game::game_loop()
 	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> mzoom_text(load_text("- Zoom", color), SDL_DestroyTexture);
 	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> pspeed_text(load_text("+ Speed", color), SDL_DestroyTexture);
 	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> mspeed_text(load_text("- Speed", color), SDL_DestroyTexture);
-	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> rand_text(load_text("Random Color", color), SDL_DestroyTexture);
-	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> norm_text(load_text("Normal Color", color), SDL_DestroyTexture);
+	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> rand_text(load_text("Rand. Col.", color), SDL_DestroyTexture);
+	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> norm_text(load_text("Norm. Col.", color), SDL_DestroyTexture);
+
+	// buttons
+	button pzoom(pzoom_text.get());
+	pzoom.center_y(gui_vp);
+	pzoom.map_x(gui_vp, 1, 6);
+	button mzoom(mzoom_text.get());
+	mzoom.center_y(gui_vp);
+	mzoom.map_x(gui_vp, 2, 6);
+	button pspeed(pspeed_text.get());
+	pspeed.center_y(gui_vp);
+	pspeed.map_x(gui_vp, 3, 6);
+	button mspeed(mspeed_text.get());
+	mspeed.center_y(gui_vp);
+	mspeed.map_x(gui_vp, 4, 6);
+	button rand_b(rand_text.get());
+	rand_b.center_y(gui_vp);
+	rand_b.map_x(gui_vp, 5, 6);
+	button norm_b(norm_text.get());
+	norm_b.center_y(gui_vp);
+	norm_b.map_x(gui_vp, 6, 6);
 	
 	// cell
 	SDL_Rect d_cell;
@@ -249,6 +269,13 @@ void game::game_loop()
 		SDL_SetRenderDrawColor(rend, 0xA9, 0xA9, 0xA9, 0xFF);
 		SDL_RenderFillRect(rend, &gui);
 
+		// render buttons
+		pzoom.draw(rend);
+		mzoom.draw(rend);
+		pspeed.draw(rend);
+		mspeed.draw(rend);
+		rand_b.draw(rend);
+		norm_b.draw(rend);
 		// update screen
 		SDL_RenderPresent(rend);
 
