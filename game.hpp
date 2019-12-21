@@ -42,7 +42,7 @@ private:
 	// across each dimension at a given time
 	int y_con_cells() { return conway_vp.h / (def_cell_size * cell_scale); }
 	int x_con_cells() { return conway_vp.w / (def_cell_size * cell_scale); }
-	bool within_rect(SDL_Rect& r, int x, int y);
+	bool within_rect(SDL_Rect& r, int x, int y, SDL_Rect* vp = nullptr);
 	SDL_Texture* load_text(std::string text, SDL_Color color);
 public:
 	game(int width, int height, int x_grid, int y_grid);
@@ -52,13 +52,16 @@ public:
 };
 
 class button {
+private:
+	bool pressed;
 public:
-	static constexpr int anim_offset = 5;
+	static constexpr int anim_offset = 2;
+	static constexpr int ms_dur = 150;
 	SDL_Rect dest;
 	SDL_Texture* texture;
 	SDL_Color color;
 	Uint32 timer;
-	button(SDL_Texture* t, int x = 0, int y = 0, SDL_Color bcol = {0, 0, 0}) : texture{t}, color{bcol} {
+	button(SDL_Texture* t, int x = 0, int y = 0, SDL_Color bcol = {0, 0, 0}) : texture{t}, color{bcol}, pressed{false} {
 		// set width and height of texture
 		int w, h;
 		dest.x = x;
@@ -77,7 +80,27 @@ public:
 		int c_size = vp.w / div;
 		dest.x = (cell * c_size) - (c_size / 2) - (dest.w / 2);
 	}
+	void map_y(const SDL_Rect& vp, int cell, int div) {
+		int c_size = vp.h / div;
+		dest.y = (cell * c_size) - (c_size / 2) - (dest.h / 2);
+	}
 	// animation methods
+	void anim() {
+		if (pressed == false) return;
+		else if (elapsed() < ms_dur) return;
+		else {
+			pressed = false;
+			depress_anim();
+		}
+	}
+	void press() {
+		if (pressed == true) return;
+		else {
+			pressed = true;
+			time();
+			press_anim();
+		}
+	}
 	void press_anim() {
 		dest.y += anim_offset;
 	}
@@ -88,6 +111,12 @@ public:
 	void draw(SDL_Renderer* rend) {
 		SDL_SetRenderDrawColor(rend, color.r, color.g, color.b, 0xFF);
 		SDL_RenderDrawRect(rend, &dest);
+		draw_outline(rend);
+		draw_outline(rend, 1);
 		SDL_RenderCopy(rend, texture, nullptr, &dest);
+	}
+	void draw_outline(SDL_Renderer* rend, int offset = 0) {
+		SDL_RenderDrawLine(rend, dest.x, dest.y + dest.h + offset, dest.x + dest.w + offset, dest.y + dest.h + offset);
+		SDL_RenderDrawLine(rend, dest.x + dest.w + offset, dest.y, dest.x + dest.w + offset, dest.y + dest.h + offset);
 	}
 };
