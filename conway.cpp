@@ -1,17 +1,29 @@
 #include "conway.hpp"
 
-void conway::populate(std::vector<cell> points)
+void conway::allocate()
 {
 	// allocate
 	matrix = new cell*[rows];
 	for (int i = 0; i < rows; ++i) {
 		matrix[i] = new cell[cols];
 	}
-	// populate
-	for (auto& p : points) {
-		matrix[p.y][p.x].alive = true;
-	}
 	populated = true;
+}
+
+void conway::populate(std::vector<cell> points)
+{
+	allocate();
+	// populate
+	for (auto& p : points)
+		matrix[p.y][p.x].alive = true;
+}
+
+void conway::populate_rand()
+{
+	allocate();
+	for (int r = 0; r < rows; ++r)
+		for (int c = 0; c < cols; ++c)
+			if (distr(eng)) matrix[c][r].alive = true;
 }
 
 conway::~conway()

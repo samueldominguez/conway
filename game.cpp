@@ -85,6 +85,7 @@ void game::game_loop()
 	bool quit = false;
 	bool use_random = false; // use random colors?
 	bool pause = false; // pause or play?
+	bool step = false; // step once?
 	SDL_Event ev; // event handler
 	Uint32 start, cell_update;
 
@@ -102,6 +103,7 @@ void game::game_loop()
 	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> rand_text(load_text("Rand. Col.", color), SDL_DestroyTexture);
 	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> norm_text(load_text("Norm. Col.", color), SDL_DestroyTexture);
 	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> pp_text(load_text("Pause/Play", color), SDL_DestroyTexture);
+	std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)> step_text(load_text("   Step   ", color), SDL_DestroyTexture);
 
 	// buttons
 	button pzoom(pzoom_text.get());
@@ -123,8 +125,11 @@ void game::game_loop()
 	norm_b.map_y(gui_vp, 2, 2);
 	norm_b.map_x(gui_vp, 3, 4);
 	button pp_b(pp_text.get());
-	pp_b.center_y(gui_vp);
+	pp_b.map_y(gui_vp, 1, 2);
 	pp_b.map_x(gui_vp, 4, 4);
+	button step_b(step_text.get());
+	step_b.map_y(gui_vp, 2, 2);
+	step_b.map_x(gui_vp, 4, 4);
 	
 	// cell
 	SDL_Rect d_cell;
@@ -157,6 +162,7 @@ void game::game_loop()
 
 	// populate the conway matrix
 	cw->populate(p);
+	// cw->populate_rand();
 
 	// get access to the keyboard state
 	const Uint8* key_state = SDL_GetKeyboardState(NULL);
@@ -235,12 +241,16 @@ void game::game_loop()
 					// normal colors enabled
 					use_random = false;
 					norm_b.press();
-				} else if(ev.button.button == SDL_BUTTON_LEFT and
+				} else if (ev.button.button == SDL_BUTTON_LEFT and
 					  within_rect(pp_b.dest, ev.motion.x, ev.motion.y, &gui_vp)) {
 					// pause or play the simulation
 					if (pause) pause = false;
 					else pause = true;
 					pp_b.press();
+				} else if (ev.button.button == SDL_BUTTON_LEFT and
+					   within_rect(step_b.dest, ev.motion.x, ev.motion.y, &gui_vp)) {
+					if (pause) step = true;
+					step_b.press();
 				}
 				break;
 			case SDL_MOUSEBUTTONUP:
@@ -263,11 +273,13 @@ void game::game_loop()
 		}
 		
 		// cell updates every cell_update_t in ms
-		if (pause == false and SDL_GetTicks() - cell_update >= cell_update_t) {
+		if (step == true or (pause == false and SDL_GetTicks() - cell_update >= cell_update_t)) {
 			// step conway's game of life
 			cw->step();
 			// reset the cell_update timer
 			cell_update = SDL_GetTicks();
+			// always set step to false
+			step = false;
 		}
 
 		// adjust scale of the cell
@@ -281,6 +293,7 @@ void game::game_loop()
 		rand_b.anim();
 		norm_b.anim();
 		pp_b.anim();
+		step_b.anim();
 		
 		// clear screen
 		SDL_SetRenderDrawColor(rend, 0x00, 0x00, 0x00, 0x00);
@@ -315,6 +328,7 @@ void game::game_loop()
 		rand_b.draw(rend);
 		norm_b.draw(rend);
 		pp_b.draw(rend);
+		step_b.draw(rend);
 		
 		// update screen
 		SDL_RenderPresent(rend);
